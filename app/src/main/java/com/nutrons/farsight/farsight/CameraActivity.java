@@ -2,6 +2,7 @@ package com.nutrons.farsight.farsight;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.MotionEvent;
 import android.view.View;
 
 import org.opencv.android.BaseLoaderCallback;
@@ -16,10 +17,11 @@ import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-public class CameraActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2{
+public class CameraActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2, View.OnTouchListener{
     Mat hsv;
     Mat mask;
     Mat hierarchy;
@@ -62,6 +64,7 @@ public class CameraActivity extends AppCompatActivity implements CameraBridgeVie
         cameraView = (CameraBridgeViewBase) findViewById(R.id.camera_view);
         cameraView.setCvCameraViewListener(this);
         cameraView.setVisibility(View.VISIBLE);
+        cameraView.setOnTouchListener(this);
 
         //threshold values for green, !!LATER CHANGE THESE TO SLIDERS!!
         colorLow = new double[]{50, 100, 100};
@@ -102,25 +105,32 @@ public class CameraActivity extends AppCompatActivity implements CameraBridgeVie
     public List<MatOfPoint> getLargestContour(Mat threshedImage){
         List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
         Imgproc.findContours(threshedImage, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE);
-
-        //finding biggest area
-        Iterator<MatOfPoint> iterator = contours.iterator();
-        double maxArea = 0.0;
-        while(iterator.hasNext()){
-            double area = Imgproc.contourArea(iterator.next());
-            if(area > maxArea){
+        
+        double maxArea = 0;
+        Iterator<MatOfPoint> each = contours.iterator();
+        while (each.hasNext()) {
+            MatOfPoint wrapper = each.next();
+            double area = Imgproc.contourArea(wrapper);
+            if (area > maxArea)
                 maxArea = area;
-            };
         }
 
-        //filter out only biggest contour
         largestContour.clear();
-        while(iterator.hasNext()){
-            if(Imgproc.contourArea(iterator.next()) == maxArea){
-                largestContour.add(iterator.next());
+        each = contours.iterator();
+        while (each.hasNext()) {
+            MatOfPoint contour = each.next();
+            if (Imgproc.contourArea(contour) == maxArea) {
+                largestContour.add(contour);
             }
         }
 
         return largestContour;
+    }
+
+    @Override
+    public boolean onTouch(View v, MotionEvent event) {
+        System.out.println(largestContour.size());
+        System.out.println("Touched!");
+        return false;
     }
 }
